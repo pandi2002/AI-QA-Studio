@@ -305,7 +305,7 @@ function App() {
   const handleViewReport = () => {
 
     window.open(
-      "http://127.0.0.1:8000/allure-report/index.html",
+      "https://ai-qa-studio.onrender.com/allure-report/index.html",
       "_blank"
     );
 
