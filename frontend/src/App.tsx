@@ -329,14 +329,11 @@ function App() {
 
       if (result) {
         // Generate from existing test cases
-        response = await generateBugReport(
-          { testcases: result }, provider
+        response = await generateBugReport( result, provider
         );
       } else {
         // Generate directly from requirement
-        response = await generateBugReport({
-          requirement: requirement,
-        }, provider);
+        response = await generateBugReport(requirement, provider);
       }
 
       console.log(response);

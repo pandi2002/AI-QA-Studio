@@ -123,7 +123,7 @@ export async function generateSQL(
 
 export async function runAutomation(script: string) {
 
-    const response = await fetch("http://127.0.0.1:8000/automation/run", {
+    const response = await fetch(`${API_URL}/automation/run`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
