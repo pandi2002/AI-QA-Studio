@@ -1,0 +1,18 @@
+name: AI QA Studio Automation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Show Repository Files
+        run: ls -la
+
+      - name: Verify GitHub Actions
+        run: echo "✅ GitHub Actions is working successfully!"
