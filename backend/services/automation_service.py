@@ -9,9 +9,9 @@ import shutil
 AUTOMATION_DIR = Path(__file__).parent.parent / "automation"
 TESTS_DIR = AUTOMATION_DIR / "tests"
 
-# Local executables
-PLAYWRIGHT_CMD = AUTOMATION_DIR / "node_modules" / ".bin" / "playwright.cmd"
-ALLURE_CMD = AUTOMATION_DIR / "node_modules" / ".bin" / "allure.cmd"
+# # Local executables
+# PLAYWRIGHT_CMD = AUTOMATION_DIR / "node_modules" / ".bin" / "playwright.cmd"
+# ALLURE_CMD = AUTOMATION_DIR / "node_modules" / ".bin" / "allure.cmd"
 
 
 def cleanup_previous_execution():
@@ -59,6 +59,7 @@ def run_playwright(test_file: Path):
 
     result = subprocess.run(
         [
+            "npx",
             str(PLAYWRIGHT_CMD),
             "test",
             f"tests/{test_file.name}",
@@ -90,6 +91,7 @@ def generate_allure_report():
 
     result = subprocess.run(
         [
+            "npx",
             str(ALLURE_CMD),
             "generate",
             "allure-results",
