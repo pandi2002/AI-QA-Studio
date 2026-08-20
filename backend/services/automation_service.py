@@ -56,62 +56,81 @@ def save_playwright_script(script: str) -> Path:
 
 def run_playwright(test_file: Path):
 
-    cmd = [NPX_CMD, "playwright", "test", f"tests/{test_file.name}"]
+    try:
+        cmd = [NPX_CMD, "playwright", "test", f"tests/{test_file.name}"]
 
-    result = subprocess.run(
-        cmd,
-        cwd=AUTOMATION_DIR,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        shell=(os.name == "nt"),
-    )
+        result = subprocess.run(
+            cmd,
+            cwd=AUTOMATION_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            shell=(os.name == "nt"),
+        )
 
-    stdout = result.stdout
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
 
-    passed = len(re.findall(r"✓", stdout))
-    failed = len(re.findall(r"✘", stdout))
+        passed = len(re.findall(r"✓", stdout))
+        failed = len(re.findall(r"✘", stdout))
 
-    total = passed + failed
+        total = passed + failed
 
-    return {
-        "success": result.returncode == 0,
-        "total": total,
-        "passed": passed,
-        "failed": failed,
-        "stdout": stdout,
-        "stderr": result.stderr,
-    }
+        return {
+            "success": result.returncode == 0,
+            "total": total,
+            "passed": passed,
+            "failed": failed,
+            "stdout": stdout,
+            "stderr": stderr,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "total": 0,
+            "passed": 0,
+            "failed": 0,
+            "stdout": "",
+            "stderr": f"Local Playwright execution exception: {str(e)}",
+        }
 
 
 def generate_allure_report():
 
-    cmd = [
-        NPX_CMD,
-        "allure",
-        "generate",
-        "allure-results",
-        "--clean",
-        "-o",
-        "allure-report",
-    ]
+    try:
+        cmd = [
+            NPX_CMD,
+            "allure",
+            "generate",
+            "allure-results",
+            "--clean",
+            "-o",
+            "allure-report",
+        ]
 
-    result = subprocess.run(
-        cmd,
-        cwd=AUTOMATION_DIR,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        shell=(os.name == "nt"),
-    )
+        result = subprocess.run(
+            cmd,
+            cwd=AUTOMATION_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            shell=(os.name == "nt"),
+        )
 
-    return {
-        "success": result.returncode == 0,
-        "stdout": result.stdout,
-        "stderr": result.stderr,
-    }
+        return {
+            "success": result.returncode == 0,
+            "stdout": result.stdout or "",
+            "stderr": result.stderr or "",
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": f"Local Allure generation exception: {str(e)}",
+        }
+
 
 
 def get_execution_summary():

@@ -26,9 +26,9 @@ async def run_generated_playwright(
     request: PlaywrightExecutionRequest
 ):
     token = os.getenv("GITHUB_TOKEN")
-    use_github = (request.mode == "github") or (request.mode == "auto" and bool(token))
-
-    if use_github:
+    
+    # Try GitHub Actions if token exists or explicitly requested
+    if token or request.mode == "github":
         try:
             # Upload the Playwright script to GitHub repository
             upload_result = upload_playwright_script(request.script)
@@ -47,24 +47,27 @@ async def run_generated_playwright(
                 "github": workflow_result,
             }
         except Exception as github_err:
-            if request.mode == "github":
-                return {
-                    "success": False,
-                    "mode": "github",
-                    "message": f"GitHub Actions trigger failed: {str(github_err)}",
-                }
-            print(f"[Automation Route] GitHub trigger failed ({github_err}). Falling back to local execution.")
+            return {
+                "success": False,
+                "mode": "github",
+                "message": f"GitHub Actions trigger failed: {str(github_err)}",
+                "actions_url": get_actions_url(),
+                "report_url": get_report_url(),
+            }
 
-    # Local mode fallback or auto when no token configured
+    # If running locally or token not configured yet, attempt local execution
     try:
         res = run_local_automation(request.script)
         res["report_url"] = "/allure-report/index.html"
+        if not res.get("success") and "Local Playwright execution exception" in res.get("stderr", ""):
+            res["message"] = "GITHUB_TOKEN is not configured on Render. Please add GITHUB_TOKEN under Render Environment Variables to enable GitHub Actions automation."
         return res
     except Exception as e:
         return {
             "success": False,
             "mode": "local",
-            "message": f"Local automation execution failed: {str(e)}",
+            "message": f"Automation execution failed: {str(e)}",
             "stdout": "",
             "stderr": str(e),
-        }
+        }
+
