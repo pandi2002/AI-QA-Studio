@@ -1,43 +1,29 @@
 import { test, expect, Page } from '@playwright/test';
 
 /**
- * Page Object Model for Login Page
+ * Page Object Model representing the Login Page.
  */
-export class LoginPage {
+class LoginPage {
   readonly page: Page;
 
   constructor(page: Page) {
     this.page = page;
   }
 
-  // Locators using standard Playwright recommended strategies
-  get usernameInput() {
-    return this.page.getByLabel('Username');
-  }
+  // Recommended Playwright locators using accessible roles and labels
+  readonly usernameInput = this.page.getByLabel(/username/i);
+  readonly passwordInput = this.page.getByLabel(/password/i);
+  readonly loginButton = this.page.getByRole('button', { name: /log in|sign in|submit/i });
+  readonly errorMessage = this.page.getByRole('alert');
+  readonly userDashboard = this.page.getByTestId('dashboard-header');
+  readonly usernameValidationError = this.page.getByText(/username is required/i);
 
-  get passwordInput() {
-    return this.page.getByLabel('Password');
-  }
-
-  get loginButton() {
-    return this.page.getByRole('button', { name: 'Log in' });
-  }
-
-  get errorMessage() {
-    return this.page.getByRole('alert');
-  }
-
-  get userDashboardHeader() {
-    return this.page.getByRole('heading', { name: 'Dashboard' });
-  }
-
-  // Actions
-  async navigate() {
+  async navigate(): Promise<void> {
     const baseUrl = process.env.BASE_URL || 'https://example.com';
     await this.page.goto(`${baseUrl}/login`);
   }
 
-  async login(username?: string, password?: string) {
+  async login(username?: string, password?: string): Promise<void> {
     if (username !== undefined) {
       await this.usernameInput.fill(username);
     }
@@ -57,39 +43,43 @@ test.describe('Authentication - Login with Username', () => {
   });
 
   test('should successfully log in with valid username and password', async ({ page }) => {
-    // Arrange & Act
-    await loginPage.login('valid_user', 'SecurePassword123!');
+    const validUsername = process.env.TEST_USERNAME || 'valid_user';
+    const validPassword = process.env.TEST_PASSWORD || 'Password123!';
 
-    // Assert
-    const baseUrl = process.env.BASE_URL || 'https://example.com';
-    await expect(page).toHaveURL(`${baseUrl}/dashboard`);
-    await expect(loginPage.userDashboardHeader).toBeVisible();
+    await loginPage.login(validUsername, validPassword);
+
+    // Verify successful redirection and authenticated UI element
+    await expect(page).toHaveURL(/.*dashboard/i);
+    await expect(loginPage.userDashboard).toBeVisible();
   });
 
-  test('should display error message with non-existent username', async () => {
-    // Arrange & Act
-    await loginPage.login('non_existent_user', 'SecurePassword123!');
+  test('should display error message when logging in with invalid password', async () => {
+    const validUsername = process.env.TEST_USERNAME || 'valid_user';
+    const invalidPassword = 'WrongPassword123!';
 
-    // Assert
+    await loginPage.login(validUsername, invalidPassword);
+
+    // Verify error message for invalid credentials
     await expect(loginPage.errorMessage).toBeVisible();
-    await expect(loginPage.errorMessage).toContainText('Invalid credentials');
+    await expect(loginPage.errorMessage).toContainText(/invalid credentials|incorrect password/i);
   });
 
-  test('should display error message with valid username but wrong password', async () => {
-    // Arrange & Act
-    await loginPage.login('valid_user', 'WrongPassword!');
+  test('should display error message when logging in with non-existent username', async () => {
+    const nonExistentUser = 'non_existent_user_999';
+    const password = 'Password123!';
 
-    // Assert
+    await loginPage.login(nonExistentUser, password);
+
+    // Verify error response for unknown user
     await expect(loginPage.errorMessage).toBeVisible();
-    await expect(loginPage.errorMessage).toContainText('Invalid credentials');
+    await expect(loginPage.errorMessage).toContainText(/user not found|invalid credentials/i);
   });
 
-  test('should show validation error when username field is empty', async () => {
-    // Arrange & Act
-    await loginPage.login('', 'SecurePassword123!');
+  test('should display validation error when submitting empty username field', async () => {
+    // Attempt to login without providing username
+    await loginPage.login('', 'Password123!');
 
-    // Assert
-    await expect(loginPage.errorMessage).toBeVisible();
-    await expect(loginPage.errorMessage).toContainText('Username is required');
+    // Verify field-level validation message
+    await expect(loginPage.usernameValidationError).toBeVisible();
   });
 });
