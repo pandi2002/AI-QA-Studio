@@ -1,5 +1,5 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter # type: ignore
+from pydantic import BaseModel # type: ignore
 
 from services.github_service import (
     upload_playwright_script,

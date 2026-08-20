@@ -9,6 +9,9 @@ import shutil
 AUTOMATION_DIR = Path(__file__).parent.parent / "automation"
 TESTS_DIR = AUTOMATION_DIR / "tests"
 
+PLAYWRIGHT_CMD = "npx"
+ALLURE_CMD = "npx"
+
 # # Local executables
 # PLAYWRIGHT_CMD = AUTOMATION_DIR / "node_modules" / ".bin" / "playwright.cmd"
 # ALLURE_CMD = AUTOMATION_DIR / "node_modules" / ".bin" / "allure.cmd"
