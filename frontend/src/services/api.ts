@@ -195,6 +195,41 @@ export async function clearUserData(username: string) {
     }
 }
 
+export async function getUserHistoryList(username: string) {
+    if (!username || username === "default") return { history: [] };
+    const res = await fetch(`${API_URL}/user-data/history-list`, {
+        headers: { "X-Username": username },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to fetch history list.");
+    }
+    return await res.json();
+}
+
+export async function loadUserHistoryItem(username: string, filename: string) {
+    if (!username || username === "default") return null;
+    const res = await fetch(`${API_URL}/user-data/history/${filename}`, {
+        headers: { "X-Username": username },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to load history session.");
+    }
+    return await res.json();
+}
+
+export async function deleteUserHistoryItem(username: string, filename: string) {
+    if (!username || username === "default") return;
+    const res = await fetch(`${API_URL}/user-data/history/${filename}`, {
+        method: "DELETE",
+        headers: { "X-Username": username },
+    });
+    if (!res.ok) {
+        throw new Error("Failed to delete history session.");
+    }
+    return await res.json();
+}
+
+
 export async function getAutomationStatus() {
 
     const response = await fetch(`${API_URL}/automation/status`);

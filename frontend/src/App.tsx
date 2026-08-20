@@ -23,6 +23,7 @@ import BugReportResult from "./components/BugReportResult";
 import ExecutionSummary from "./components/ExecutionSummary";
 import SQLResult from "./components/SQLResult";
 import AuthModal from "./components/AuthModal";
+import HistoryDrawer from "./components/HistoryDrawer";
 import { generateTestCases, exportExcel, exportPdf, generatePlaywright, generateSQL, generateReview, generateBugReport, runAutomation, getAutomationStatus, saveUserData, loadUserData, clearUserData } from "./services/api";
 
 
@@ -37,12 +38,42 @@ function App() {
   const [bugReport, setBugReport] = useState<BugReport | null>(null);
   const [execution, setExecution] = useState<Execution | null>(null);
   const [reportUrl, setReportUrl] = useState("");
+  const [result, setResult] = useState<TestCaseResponse | null>(null);
+
 
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem("ai_qa_user");
     return saved ? JSON.parse(saved) : null;
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+
+  // Backup active workspace to localStorage on state update so refresh never loses work
+  useEffect(() => {
+    if (requirement || playwrightCode || sqlCode || result) {
+      localStorage.setItem("ai_qa_active_workspace", JSON.stringify({
+        requirement, testingTypes, designTechniques, result, playwrightCode, sqlCode, review, bugReport
+      }));
+    }
+  }, [requirement, testingTypes, designTechniques, result, playwrightCode, sqlCode, review, bugReport]);
+
+  // Restore active workspace on initial mount
+  useEffect(() => {
+    const savedActive = localStorage.getItem("ai_qa_active_workspace");
+    if (savedActive) {
+      try {
+        const d = JSON.parse(savedActive);
+        if (d.requirement) setRequirement(d.requirement);
+        if (d.testingTypes) setTestingTypes(d.testingTypes);
+        if (d.designTechniques) setDesignTechniques(d.designTechniques);
+        if (d.result) setResult(d.result);
+        if (d.playwrightCode) setPlaywrightCode(d.playwrightCode);
+        if (d.sqlCode) setSqlCode(d.sqlCode);
+        if (d.review) setReview(d.review);
+        if (d.bugReport) setBugReport(d.bugReport);
+      } catch {}
+    }
+  }, []);
 
   // Auto-load user workspace when logged in
   useEffect(() => {
@@ -63,6 +94,19 @@ function App() {
       });
     }
   }, [user?.username]);
+
+  const handleLoadHistorySession = (sessionData: any) => {
+    if (!sessionData) return;
+    if (sessionData.requirement !== undefined) setRequirement(sessionData.requirement);
+    if (sessionData.testingTypes) setTestingTypes(sessionData.testingTypes);
+    if (sessionData.designTechniques) setDesignTechniques(sessionData.designTechniques);
+    if (sessionData.testCases) setResult(sessionData.testCases);
+    if (sessionData.playwrightCode !== undefined) setPlaywrightCode(sessionData.playwrightCode);
+    if (sessionData.sqlCode !== undefined) setSqlCode(sessionData.sqlCode);
+    if (sessionData.review) setReview(sessionData.review);
+    if (sessionData.bugReport) setBugReport(sessionData.bugReport);
+  };
+
 
   const autoSaveWorkspace = (overrides: any = {}) => {
     if (!user?.username) return;
@@ -98,9 +142,8 @@ function App() {
   const [stderr, setStderr] = useState("");
 
   const [images, setImages] = useState<File[]>([]);
-
-  const [result, setResult] = useState<TestCaseResponse | null>(null);
   const [message, setMessage] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   function resetExecution() {
@@ -592,7 +635,9 @@ function App() {
         user={user}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onLogout={handleLogout}
+        onOpenHistoryDrawer={() => setIsHistoryDrawerOpen(true)}
       />
+
 
 
       <main className="max-w-7xl mx-auto p-6 space-y-6">
@@ -682,7 +727,17 @@ function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
       />
+
+      {user && (
+        <HistoryDrawer
+          isOpen={isHistoryDrawerOpen}
+          onClose={() => setIsHistoryDrawerOpen(false)}
+          username={user.username}
+          onLoadSession={handleLoadHistorySession}
+        />
+      )}
     </div>
+
 
   );
 }

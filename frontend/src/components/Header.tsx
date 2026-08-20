@@ -6,6 +6,7 @@ type HeaderProps = {
     user: User | null;
     onOpenAuthModal: () => void;
     onLogout: () => void;
+    onOpenHistoryDrawer: () => void;
 };
 
 export default function Header({
@@ -14,7 +15,9 @@ export default function Header({
     user,
     onOpenAuthModal,
     onLogout,
+    onOpenHistoryDrawer,
 }: HeaderProps) {
+
 
     return (
 
@@ -121,16 +124,25 @@ export default function Header({
                     {/* User Auth Controls */}
 
                     {user ? (
-                        <div className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-2 text-white text-sm">
-                            <span className="font-semibold text-blue-200">👤 {user.name}</span>
+                        <div className="flex items-center gap-3">
                             <button
-                                onClick={onLogout}
-                                className="text-xs bg-red-500/80 hover:bg-red-600 px-3 py-1 rounded-lg text-white font-medium transition"
+                                onClick={onOpenHistoryDrawer}
+                                className="px-4 py-2 rounded-xl bg-blue-600/80 hover:bg-blue-500 text-white font-semibold text-sm transition shadow-md flex items-center gap-1.5"
                             >
-                                Logout
+                                📜 Saved History
                             </button>
+                            <div className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-2 text-white text-sm">
+                                <span className="font-semibold text-blue-200">👤 {user.name}</span>
+                                <button
+                                    onClick={onLogout}
+                                    className="text-xs bg-red-500/80 hover:bg-red-600 px-3 py-1 rounded-lg text-white font-medium transition"
+                                >
+                                    Logout
+                                </button>
+                            </div>
                         </div>
                     ) : (
+
                         <button
                             onClick={onOpenAuthModal}
                             className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition shadow-md flex items-center gap-2"
