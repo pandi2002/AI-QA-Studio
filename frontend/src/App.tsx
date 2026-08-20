@@ -340,9 +340,7 @@ function App() {
       console.log("Automation Response:", response);
 
       if (response.mode === "github") {
-        const userReport = user
-          ? `https://pandi2002.github.io/AI-QA-Studio/reports/${user.username}/index.html`
-          : (response.report_url || "https://pandi2002.github.io/AI-QA-Studio/");
+        const userReport = response.report_url || "https://pandi2002.github.io/AI-QA-Studio/";
         setReportUrl(userReport);
 
         toast.success("🚀 Automation test triggered! Waiting for completion...");
@@ -411,11 +409,10 @@ function App() {
   // HANDLE VIEW REPORT:
   //==================================
   const handleViewReport = () => {
-    const targetUrl = user
-      ? `https://pandi2002.github.io/AI-QA-Studio/reports/${user.username}/index.html`
-      : (reportUrl || "https://pandi2002.github.io/AI-QA-Studio/");
+    const targetUrl = reportUrl || "https://pandi2002.github.io/AI-QA-Studio/";
     window.open(targetUrl, "_blank");
   };
+
 
 
 
