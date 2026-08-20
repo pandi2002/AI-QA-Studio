@@ -54,7 +54,18 @@ def register_user(req: RegisterRequest):
 
     users = load_users()
     if username in users:
-        raise HTTPException(status_code=400, detail="Username already exists. Please login instead.")
+        # If account already exists and password matches, sign in directly!
+        if users[username]["password"] == hash_password(req.password):
+            return {
+                "success": True,
+                "message": "Welcome back!",
+                "user": {
+                    "username": username,
+                    "name": users[username]["name"],
+                }
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Username already exists with a different password.")
 
     users[username] = {
         "username": username,
@@ -73,17 +84,37 @@ def register_user(req: RegisterRequest):
     }
 
 
+
 @router.post("/login")
 def login_user(req: LoginRequest):
     username = req.username.strip().lower()
+    if not username or len(username) < 3:
+        raise HTTPException(status_code=400, detail="Username must be at least 3 characters long.")
+    if not req.password or len(req.password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters long.")
+
     users = load_users()
 
+    # If user not found, auto-create account and sign in seamlessly
     if username not in users:
-        raise HTTPException(status_code=400, detail="User not found. Please register first.")
+        users[username] = {
+            "username": username,
+            "password": hash_password(req.password),
+            "name": username.capitalize(),
+        }
+        save_users(users)
+        return {
+            "success": True,
+            "message": "Welcome! Account created and logged in.",
+            "user": {
+                "username": username,
+                "name": users[username]["name"],
+            }
+        }
 
     user = users[username]
     if user["password"] != hash_password(req.password):
-        raise HTTPException(status_code=400, detail="Incorrect password.")
+        raise HTTPException(status_code=400, detail="Incorrect password. Please enter the correct password.")
 
     return {
         "success": True,
@@ -93,6 +124,7 @@ def login_user(req: LoginRequest):
             "name": user["name"],
         }
     }
+
 
 
 @router.get("/me")
