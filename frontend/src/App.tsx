@@ -34,7 +34,6 @@ function App() {
   const [bugReport, setBugReport] = useState<BugReport | null>(null);
   const [execution, setExecution] = useState<Execution | null>(null);
   const [reportUrl, setReportUrl] = useState("");
-  const [executionMode, setExecutionMode] = useState<string>("auto");
 
   const [stdout, setStdout] = useState("");
 
@@ -51,7 +50,6 @@ function App() {
     setStdout("");
     setStderr("");
     setReportUrl("");
-    setExecutionMode("auto");
   }
 
 
@@ -276,11 +274,9 @@ function App() {
       console.log("Automation Response:", response);
 
       if (response.mode === "github") {
-        setExecutionMode("github");
         setReportUrl(response.report_url || "https://pandi2002.github.io/AI-QA-Studio/");
         toast.success("🎉 Automation started successfully!");
       } else {
-        setExecutionMode("local");
         setExecution(response.summary || null);
         setStdout(response.stdout || "");
         setStderr(response.stderr || "");
@@ -533,11 +529,7 @@ function App() {
           onClear={handleClear}
         />
 
-        <ExecutionSummary
-          execution={execution}
-          mode={executionMode}
-          onViewReport={handleViewReport}
-        />
+        <ExecutionSummary execution={execution} />
         {stdout && (
           <details className="bg-white rounded-xl shadow-md p-4">
             <summary className="cursor-pointer font-semibold">

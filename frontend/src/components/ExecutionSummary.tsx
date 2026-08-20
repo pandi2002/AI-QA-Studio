@@ -4,46 +4,10 @@ interface Props {
     onViewReport?: () => void;
 }
 
-export default function ExecutionSummary({ execution, mode, onViewReport }: Props) {
+export default function ExecutionSummary({ execution }: Props) {
 
+    if (!execution) return null;
 
-    if (!execution && mode !== "github") return null;
-
-    if (mode === "github") {
-        return (
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-800">
-                            🚀 Automation Executing
-                        </h2>
-                        <p className="text-sm text-slate-500 mt-1">
-                            Playwright test suite launched successfully
-                        </p>
-                    </div>
-
-                    <span className="px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-700">
-                        ✔ STARTED
-                    </span>
-                </div>
-
-                <div className="rounded-xl border border-green-200 bg-green-50 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <p className="text-green-800 font-medium text-sm">
-                        🎉 Automation test triggered successfully! Click <strong>View Allure Report</strong> to open the interactive test report.
-                    </p>
-
-                    {onViewReport && (
-                        <button
-                            onClick={onViewReport}
-                            className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition shadow shrink-0"
-                        >
-                            📊 View Allure Report
-                        </button>
-                    )}
-                </div>
-            </div>
-        );
-    }
 
 
     const allPassed =
