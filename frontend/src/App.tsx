@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import Header from "./components/Header";
 import RequirementInput from "./components/RequirementInput";
@@ -23,7 +23,7 @@ import BugReportResult from "./components/BugReportResult";
 import ExecutionSummary from "./components/ExecutionSummary";
 import SQLResult from "./components/SQLResult";
 import AuthModal from "./components/AuthModal";
-import { generateTestCases, exportExcel, exportPdf, generatePlaywright, generateSQL, generateReview, generateBugReport, runAutomation, getAutomationStatus } from "./services/api";
+import { generateTestCases, exportExcel, exportPdf, generatePlaywright, generateSQL, generateReview, generateBugReport, runAutomation, getAutomationStatus, saveUserData, loadUserData, clearUserData } from "./services/api";
 
 
 function App() {
@@ -44,6 +44,41 @@ function App() {
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  // Auto-load user workspace when logged in
+  useEffect(() => {
+    if (user?.username) {
+      loadUserData(user.username).then((res) => {
+        if (res && res.has_data && res.data) {
+          const d = res.data;
+          if (d.requirement) setRequirement(d.requirement);
+          if (d.testingTypes) setTestingTypes(d.testingTypes);
+          if (d.designTechniques) setDesignTechniques(d.designTechniques);
+          if (d.testCases) setResult(d.testCases);
+          if (d.playwrightCode) setPlaywrightCode(d.playwrightCode);
+          if (d.sqlCode) setSqlCode(d.sqlCode);
+          if (d.review) setReview(d.review);
+          if (d.bugReport) setBugReport(d.bugReport);
+          toast.success(`Welcome back ${user.name}! Restored your workspace.`);
+        }
+      });
+    }
+  }, [user?.username]);
+
+  const autoSaveWorkspace = (overrides: any = {}) => {
+    if (!user?.username) return;
+    saveUserData(user.username, {
+      requirement,
+      testingTypes,
+      designTechniques,
+      testCases: result,
+      playwrightCode,
+      sqlCode,
+      review,
+      bugReport,
+      ...overrides,
+    });
+  };
+
   const handleLoginSuccess = (userData: User) => {
     setUser(userData);
     localStorage.setItem("ai_qa_user", JSON.stringify(userData));
@@ -52,8 +87,10 @@ function App() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem("ai_qa_user");
+    handleClear();
     toast.success("Logged out successfully.");
   };
+
 
 
   const [stdout, setStdout] = useState("");
@@ -125,8 +162,10 @@ function App() {
       }
 
       setResult(response.result);
+      autoSaveWorkspace({ testCases: response.result });
 
       setMessage("");
+
 
       toast.success(SUCCESS_MESSAGES.TEST_CASES);
 
@@ -167,9 +206,11 @@ function App() {
       }
 
       setReview(response.result);
+      autoSaveWorkspace({ review: response.result });
       setMessage("")
 
       toast.success(SUCCESS_MESSAGES.REVIEW);
+
 
     } catch (error) {
 
@@ -209,9 +250,11 @@ function App() {
       }
 
       setPlaywrightCode(response.result.code);
+      autoSaveWorkspace({ playwrightCode: response.result.code });
       setMessage("");
 
       toast.success(SUCCESS_MESSAGES.PLAYWRIGHT);
+
 
     } catch (error) {
 
@@ -253,8 +296,10 @@ function App() {
       }
 
       setSqlCode(response.result.sql);
+      autoSaveWorkspace({ sqlCode: response.result.sql });
 
       setMessage("");
+
 
       toast.success(SUCCESS_MESSAGES.SQL);
 
@@ -407,9 +452,11 @@ function App() {
       }
 
       setBugReport(response.result);
+      autoSaveWorkspace({ bugReport: response.result });
       setMessage("");
 
       toast.success(SUCCESS_MESSAGES.BUG_REPORT);
+
 
     } catch (error) {
 
@@ -521,6 +568,10 @@ function App() {
   // HANDLE CLEAR FUNCTION:
   //==================================
   function handleClear() {
+    if (user?.username) {
+      clearUserData(user.username);
+    }
+
     setRequirement("");
     setTestingTypes([]);
     setDesignTechniques([]);
@@ -533,6 +584,7 @@ function App() {
 
     clearLoadingMessage();
   }
+
 
 
   return (

@@ -147,7 +147,56 @@ export async function registerUser(username: string, password: string, name?: st
     return await response.json();
 }
 
+export async function saveUserData(username: string, workspaceData: any) {
+
+    if (!username || username === "default") return;
+    try {
+        await fetch(`${API_URL}/user-data/save`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Username": username,
+            },
+            body: JSON.stringify(workspaceData),
+        });
+    } catch (e) {
+        console.error("Failed to auto-save user workspace:", e);
+    }
+}
+
+export async function loadUserData(username: string) {
+    if (!username || username === "default") return null;
+    try {
+        const res = await fetch(`${API_URL}/user-data/load`, {
+            headers: {
+                "X-Username": username,
+            },
+        });
+        if (res.ok) {
+            return await res.json();
+        }
+    } catch (e) {
+        console.error("Failed to load user workspace:", e);
+    }
+    return null;
+}
+
+export async function clearUserData(username: string) {
+    if (!username || username === "default") return;
+    try {
+        await fetch(`${API_URL}/user-data/clear`, {
+            method: "POST",
+            headers: {
+                "X-Username": username,
+            },
+        });
+    } catch (e) {
+        console.error("Failed to clear user workspace:", e);
+    }
+}
+
 export async function getAutomationStatus() {
+
     const response = await fetch(`${API_URL}/automation/status`);
     if (!response.ok) {
         throw new Error("Failed to fetch automation status.");
