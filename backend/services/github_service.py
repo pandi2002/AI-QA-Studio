@@ -7,12 +7,18 @@ GITHUB_API = "https://api.github.com"
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_OWNER = os.getenv("GITHUB_OWNER", "pandi2002")
-GITHUB_REPO = os.getenv("GITHUB_REPO", "AI-QA-Studio")
+
+repo_env = os.getenv("GITHUB_REPO", "AI-QA-Studio")
+if repo_env in ("AI-QA-Assistant", "AI-QA-Assistant.git"):
+    repo_env = "AI-QA-Studio"
+
+GITHUB_REPO = repo_env
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
 
 WORKFLOW_FILE = "automation.yml"
 
 PLAYWRIGHT_FILE_PATH = "backend/automation/tests/generated.spec.ts"
+
 
 
 def get_github_token():
