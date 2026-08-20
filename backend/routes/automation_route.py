@@ -1,17 +1,15 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from fastapi.responses import FileResponse
-from pathlib import Path
 
-from services.automation_service import (
-    cleanup_previous_execution,
-    save_playwright_script,
-    run_playwright,
-    generate_allure_report,
-    get_execution_summary,
+from services.github_service import (
+    upload_playwright_script,
+    trigger_github_action,
 )
 
-router = APIRouter(prefix="/automation", tags=["Automation"])
+router = APIRouter(
+    prefix="/automation",
+    tags=["Automation"]
+)
 
 
 class PlaywrightExecutionRequest(BaseModel):
@@ -19,49 +17,31 @@ class PlaywrightExecutionRequest(BaseModel):
 
 
 @router.post("/run")
-async def run_generated_playwright(request: PlaywrightExecutionRequest):
+async def run_generated_playwright(
+    request: PlaywrightExecutionRequest
+):
 
-    #Autodelete old folders
-    cleanup_previous_execution()
+    try:
 
-    # Save generated Playwright script
-    test_file = save_playwright_script(request.script)
+        # Upload the EXACT generated Playwright script to GitHub
+        upload_result = upload_playwright_script(
+            request.script
+        )
 
-    # Execute Playwright
-    result = run_playwright(test_file)
+        # Trigger GitHub Actions
+        workflow_result = trigger_github_action()
 
-    #Generate Allure report only after Playwright execution
-    allure = generate_allure_report()
-    if not allure["success"]:
         return {
-        "success": False,
-        "message": "Failed to generate Allure report.",
-        "stdout": allure["stdout"],
-        "stderr": allure["stderr"],
-    }
+            "success": True,
+            "message": "Automation started successfully.",
+            "file": "generated.spec.ts",
+            "github": workflow_result,
+            "commit": upload_result.get("commit", {}).get("sha"),
+        }
 
-    #Summary
-    summary = get_execution_summary()
+    except Exception as e:
 
-    return {
-        "file": test_file.name,
-        "success": result["success"],
-        "stdout": result["stdout"],
-        "stderr": result["stderr"],
-        "summary": summary,
-    }
-
-@router.get("/report")
-async def open_allure_report():
-
-    report = (
-        Path(__file__).parent.parent
-        / "automation"
-        / "allure-report"
-        / "index.html"
-    )
-
-    if not report.exists():
-        return {"error": "Allure report not found"}
-
-    return FileResponse(report)
+        return {
+            "success": False,
+            "message": str(e),
+        }
