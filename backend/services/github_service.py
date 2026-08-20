@@ -15,6 +15,16 @@ WORKFLOW_FILE = "automation.yml"
 PLAYWRIGHT_FILE_PATH = "backend/automation/tests/generated.spec.ts"
 
 
+def get_github_token():
+    return (
+        os.getenv("GITHUB_TOKEN")
+        or os.getenv("GH_TOKEN")
+        or os.getenv("GITHUB_PAT")
+        or os.getenv("github_token")
+        or GITHUB_TOKEN
+    )
+
+
 def get_actions_url():
     return f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/actions"
 
@@ -24,7 +34,7 @@ def get_report_url():
 
 
 def get_headers():
-    token = os.getenv("GITHUB_TOKEN", GITHUB_TOKEN)
+    token = get_github_token()
     if not token:
         raise Exception(
             "GITHUB_TOKEN environment variable is not configured on the backend server."
@@ -39,6 +49,7 @@ def get_headers():
 
 
 def upload_playwright_script(script: str):
+
 
     url = (
         f"{GITHUB_API}/repos/"

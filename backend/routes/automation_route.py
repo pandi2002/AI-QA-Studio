@@ -7,6 +7,7 @@ from services.github_service import (
     trigger_github_action,
     get_actions_url,
     get_report_url,
+    get_github_token,
 )
 from services.automation_service import run_local_automation
 
@@ -25,7 +26,8 @@ class PlaywrightExecutionRequest(BaseModel):
 async def run_generated_playwright(
     request: PlaywrightExecutionRequest
 ):
-    token = os.getenv("GITHUB_TOKEN")
+    token = get_github_token()
+
     
     # Try GitHub Actions if token exists or explicitly requested
     if token or request.mode == "github":
