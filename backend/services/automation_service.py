@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import datetime
 import subprocess
+import os
 import re
 import json
 import shutil
@@ -9,12 +10,7 @@ import shutil
 AUTOMATION_DIR = Path(__file__).parent.parent / "automation"
 TESTS_DIR = AUTOMATION_DIR / "tests"
 
-PLAYWRIGHT_CMD = "npx"
-ALLURE_CMD = "npx"
-
-# # Local executables
-# PLAYWRIGHT_CMD = AUTOMATION_DIR / "node_modules" / ".bin" / "playwright.cmd"
-# ALLURE_CMD = AUTOMATION_DIR / "node_modules" / ".bin" / "allure.cmd"
+NPX_CMD = "npx.cmd" if os.name == "nt" else "npx"
 
 
 def cleanup_previous_execution():
@@ -40,11 +36,11 @@ def cleanup_previous_execution():
             else:
                 item.unlink()
 
-
     # Delete previously generated Playwright scripts
     if TESTS_DIR.exists():
         for file in TESTS_DIR.glob("generated_*.spec.ts"):
             file.unlink()
+
 
 def save_playwright_script(script: str) -> Path:
     TESTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -60,18 +56,16 @@ def save_playwright_script(script: str) -> Path:
 
 def run_playwright(test_file: Path):
 
+    cmd = [NPX_CMD, "playwright", "test", f"tests/{test_file.name}"]
+
     result = subprocess.run(
-        [
-            "npx",
-            str(PLAYWRIGHT_CMD),
-            "test",
-            f"tests/{test_file.name}",
-        ],
+        cmd,
         cwd=AUTOMATION_DIR,
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
+        shell=(os.name == "nt"),
     )
 
     stdout = result.stdout
@@ -90,23 +84,27 @@ def run_playwright(test_file: Path):
         "stderr": result.stderr,
     }
 
+
 def generate_allure_report():
 
+    cmd = [
+        NPX_CMD,
+        "allure",
+        "generate",
+        "allure-results",
+        "--clean",
+        "-o",
+        "allure-report",
+    ]
+
     result = subprocess.run(
-        [
-            "npx",
-            str(ALLURE_CMD),
-            "generate",
-            "allure-results",
-            "--clean",
-            "-o",
-            "allure-report",
-        ],
+        cmd,
         cwd=AUTOMATION_DIR,
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
+        shell=(os.name == "nt"),
     )
 
     return {
@@ -114,6 +112,7 @@ def generate_allure_report():
         "stdout": result.stdout,
         "stderr": result.stderr,
     }
+
 
 def get_execution_summary():
 
@@ -130,13 +129,45 @@ def get_execution_summary():
     with open(summary_file, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    stats = data["statistic"]
+    stats = data.get("statistic", {})
 
     return {
-        "total": stats["total"],
-        "passed": stats["passed"],
-        "failed": stats["failed"],
-        "broken": stats["broken"],
-        "skipped": stats["skipped"],
-        "duration": round(data["time"]["duration"] / 1000, 2),
+        "total": stats.get("total", 0),
+        "passed": stats.get("passed", 0),
+        "failed": stats.get("failed", 0),
+        "broken": stats.get("broken", 0),
+        "skipped": stats.get("skipped", 0),
+        "duration": round(data.get("time", {}).get("duration", 0) / 1000, 2),
     }
+
+
+def run_local_automation(script: str):
+
+    cleanup_previous_execution()
+
+    file_path = save_playwright_script(script)
+
+    pw_res = run_playwright(file_path)
+
+    allure_res = generate_allure_report()
+
+    summary = get_execution_summary()
+
+    if summary is None:
+        summary = {
+            "total": pw_res["total"],
+            "passed": pw_res["passed"],
+            "failed": pw_res["failed"],
+            "broken": 0,
+            "skipped": 0,
+            "duration": 0,
+        }
+
+    return {
+        "success": pw_res["success"],
+        "mode": "local",
+        "message": "Automation completed locally.",
+        "summary": summary,
+        "stdout": pw_res["stdout"],
+        "stderr": pw_res["stderr"] + ("\n" + allure_res["stderr"] if allure_res["stderr"] else ""),
+    }

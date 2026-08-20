@@ -33,6 +33,9 @@ function App() {
   const [review, setReview] = useState<Review | null>(null);
   const [bugReport, setBugReport] = useState<BugReport | null>(null);
   const [execution, setExecution] = useState<Execution | null>(null);
+  const [actionsUrl, setActionsUrl] = useState("");
+  const [reportUrl, setReportUrl] = useState("");
+  const [executionMode, setExecutionMode] = useState<string>("auto");
 
   const [stdout, setStdout] = useState("");
 
@@ -48,7 +51,11 @@ function App() {
     setExecution(null);
     setStdout("");
     setStderr("");
+    setActionsUrl("");
+    setReportUrl("");
+    setExecutionMode("auto");
   }
+
 
   function resetAIResults() {
     setReview(null);
@@ -267,18 +274,28 @@ function App() {
 
       const response = await runAutomation(playwrightCode);
 
-      console.log(response);
+      console.log("Automation Response:", response);
 
-      setExecution(response.summary);
-
-      setStdout(response.stdout);
-
-      setStderr(response.stderr);
-
-      if (response.success) {
-        toast.success(SUCCESS_MESSAGES.AUTOMATION);
+      if (response.mode === "github") {
+        setExecutionMode("github");
+        setActionsUrl(response.actions_url || "https://github.com/pandi2002/AI-QA-Studio/actions");
+        setReportUrl(response.report_url || "https://pandi2002.github.io/AI-QA-Studio/");
+        toast.success(response.message || "Automation triggered successfully on GitHub Actions!");
       } else {
-        toast.error("Automation failed. Check the Allure report for details.");
+        setExecutionMode("local");
+        setExecution(response.summary || null);
+        setStdout(response.stdout || "");
+        setStderr(response.stderr || "");
+
+        if (response.report_url) {
+          setReportUrl(response.report_url);
+        }
+
+        if (response.success) {
+          toast.success(SUCCESS_MESSAGES.AUTOMATION);
+        } else {
+          toast.error(response.message || "Automation failed. Check logs or report for details.");
+        }
       }
       setMessage("");
 
@@ -303,13 +320,10 @@ function App() {
   // HANDLE VIEW REPORT:
   //==================================
   const handleViewReport = () => {
-
-    window.open(
-      "https://ai-qa-studio.onrender.com/allure-report/index.html",
-      "_blank"
-    );
-
+    const url = reportUrl || "https://pandi2002.github.io/AI-QA-Studio/";
+    window.open(url, "_blank");
   };
+
 
   //==================================
   // HANDLE GENERATE BUG REPORT:
@@ -521,7 +535,12 @@ function App() {
           onClear={handleClear}
         />
 
-        <ExecutionSummary execution={execution} />
+        <ExecutionSummary
+          execution={execution}
+          actionsUrl={actionsUrl}
+          reportUrl={reportUrl}
+          mode={executionMode}
+        />
         {stdout && (
           <details className="bg-white rounded-xl shadow-md p-4">
             <summary className="cursor-pointer font-semibold">

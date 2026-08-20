@@ -1,6 +1,6 @@
 import os
 import base64
-import requests # type: ignore
+import requests  # type: ignore
 
 
 GITHUB_API = "https://api.github.com"
@@ -12,21 +12,26 @@ GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
 
 WORKFLOW_FILE = "automation.yml"
 
-# This is the file GitHub Actions will execute.
-PLAYWRIGHT_FILE_PATH = (
-    "backend/automation/tests/generated.spec.ts"
-)
+PLAYWRIGHT_FILE_PATH = "backend/automation/tests/generated.spec.ts"
+
+
+def get_actions_url():
+    return f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/actions"
+
+
+def get_report_url():
+    return f"https://{GITHUB_OWNER}.github.io/{GITHUB_REPO}/"
 
 
 def get_headers():
-
-    if not GITHUB_TOKEN:
+    token = os.getenv("GITHUB_TOKEN", GITHUB_TOKEN)
+    if not token:
         raise Exception(
-            "GITHUB_TOKEN environment variable is not configured."
+            "GITHUB_TOKEN environment variable is not configured on the backend server."
         )
 
     return {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
         "Content-Type": "application/json",
@@ -121,5 +126,7 @@ def trigger_github_action():
         "success": True,
         "workflow": WORKFLOW_FILE,
         "branch": GITHUB_BRANCH,
+        "actions_url": get_actions_url(),
+        "report_url": get_report_url(),
         "message": "GitHub Actions workflow triggered successfully.",
-    }
+    }

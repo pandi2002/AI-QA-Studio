@@ -41,11 +41,19 @@ app = FastAPI(
     version="2.0"
 )
 from pathlib import Path
+from fastapi.responses import RedirectResponse
 
 ALLURE_REPORT_DIR = Path(__file__).parent / "automation" / "allure-report"
 
 # Create the directory if it doesn't exist
 ALLURE_REPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+@app.get("/allure-report-url")
+def get_allure_report_url():
+    index_path = ALLURE_REPORT_DIR / "index.html"
+    if index_path.exists() and index_path.stat().st_size > 0:
+        return {"url": "/allure-report/index.html", "is_local": True}
+    return {"url": "https://pandi2002.github.io/AI-QA-Studio/", "is_local": False}
 
 app.mount(
     "/allure-report",
@@ -55,6 +63,7 @@ app.mount(
 
 app.include_router(bug_report_router)
 app.include_router(automation_router)
+
 
 app.add_middleware(
     CORSMiddleware,

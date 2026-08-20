@@ -1,10 +1,64 @@
 interface Props {
     execution: any;
+    actionsUrl?: string;
+    reportUrl?: string;
+    mode?: string;
 }
 
-export default function ExecutionSummary({ execution }: Props) {
+export default function ExecutionSummary({ execution, actionsUrl, reportUrl, mode }: Props) {
 
-    if (!execution) return null;
+    if (!execution && !actionsUrl && mode !== "github") return null;
+
+    if (mode === "github" || actionsUrl) {
+        return (
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-800">
+                            🚀 GitHub Actions Automation Triggered
+                        </h2>
+                        <p className="text-sm text-slate-500 mt-1">
+                            Playwright test uploaded & workflow dispatched on GitHub Actions.
+                        </p>
+                    </div>
+
+                    <span className="px-4 py-2 rounded-full text-sm font-semibold bg-blue-100 text-blue-700 animate-pulse">
+                        ⚡ WORKFLOW RUNNING
+                    </span>
+                </div>
+
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 space-y-4">
+                    <p className="text-slate-700 font-medium">
+                        The Playwright test has been uploaded to your repository and the workflow is executing on GitHub Actions runner.
+                    </p>
+
+                    <div className="flex flex-wrap gap-4 pt-2">
+                        {actionsUrl && (
+                            <a
+                                href={actionsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm transition shadow flex items-center gap-2"
+                            >
+                                🐙 View GitHub Action Logs
+                            </a>
+                        )}
+
+                        {reportUrl && (
+                            <a
+                                href={reportUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition shadow flex items-center gap-2"
+                            >
+                                📊 View Allure Report (GitHub Pages)
+                            </a>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const allPassed =
         execution.failed === 0 && execution.broken === 0;
@@ -52,7 +106,7 @@ export default function ExecutionSummary({ execution }: Props) {
                     <div className="text-4xl mb-2">✅</div>
 
                     <div className="text-3xl font-bold text-green-600">
-                        {execution.passed}
+                        {execution.passed ?? 0}
                     </div>
 
                     <div className="mt-2 text-green-700 font-medium">
@@ -68,7 +122,7 @@ export default function ExecutionSummary({ execution }: Props) {
                     <div className="text-4xl mb-2">❌</div>
 
                     <div className="text-3xl font-bold text-red-600">
-                        {execution.failed}
+                        {execution.failed ?? 0}
                     </div>
 
                     <div className="mt-2 text-red-700 font-medium">
@@ -84,7 +138,7 @@ export default function ExecutionSummary({ execution }: Props) {
                     <div className="text-4xl mb-2">⚠️</div>
 
                     <div className="text-3xl font-bold text-orange-600">
-                        {execution.broken}
+                        {execution.broken ?? 0}
                     </div>
 
                     <div className="mt-2 text-orange-700 font-medium">
@@ -100,7 +154,7 @@ export default function ExecutionSummary({ execution }: Props) {
                     <div className="text-4xl mb-2">⏭️</div>
 
                     <div className="text-3xl font-bold text-yellow-600">
-                        {execution.skipped}
+                        {execution.skipped ?? 0}
                     </div>
 
                     <div className="mt-2 text-yellow-700 font-medium">
@@ -116,7 +170,7 @@ export default function ExecutionSummary({ execution }: Props) {
                     <div className="text-4xl mb-2">⏱️</div>
 
                     <div className="text-3xl font-bold text-blue-600">
-                        {execution.duration}s
+                        {execution.duration ?? 0}s
                     </div>
 
                     <div className="mt-2 text-blue-700 font-medium">
@@ -170,4 +224,4 @@ export default function ExecutionSummary({ execution }: Props) {
 
     );
 
-}
+}
