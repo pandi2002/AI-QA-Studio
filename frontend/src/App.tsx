@@ -33,7 +33,6 @@ function App() {
   const [review, setReview] = useState<Review | null>(null);
   const [bugReport, setBugReport] = useState<BugReport | null>(null);
   const [execution, setExecution] = useState<Execution | null>(null);
-  const [actionsUrl, setActionsUrl] = useState("");
   const [reportUrl, setReportUrl] = useState("");
   const [executionMode, setExecutionMode] = useState<string>("auto");
 
@@ -51,10 +50,10 @@ function App() {
     setExecution(null);
     setStdout("");
     setStderr("");
-    setActionsUrl("");
     setReportUrl("");
     setExecutionMode("auto");
   }
+
 
 
   function resetAIResults() {
@@ -278,9 +277,8 @@ function App() {
 
       if (response.mode === "github") {
         setExecutionMode("github");
-        setActionsUrl(response.actions_url || "https://github.com/pandi2002/AI-QA-Studio/actions");
         setReportUrl(response.report_url || "https://pandi2002.github.io/AI-QA-Studio/");
-        toast.success(response.message || "Automation triggered successfully on GitHub Actions!");
+        toast.success("🎉 Automation started successfully!");
       } else {
         setExecutionMode("local");
         setExecution(response.summary || null);
@@ -537,9 +535,8 @@ function App() {
 
         <ExecutionSummary
           execution={execution}
-          actionsUrl={actionsUrl}
-          reportUrl={reportUrl}
           mode={executionMode}
+          onViewReport={handleViewReport}
         />
         {stdout && (
           <details className="bg-white rounded-xl shadow-md p-4">

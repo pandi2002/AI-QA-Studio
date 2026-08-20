@@ -1,64 +1,50 @@
 interface Props {
     execution: any;
-    actionsUrl?: string;
-    reportUrl?: string;
     mode?: string;
+    onViewReport?: () => void;
 }
 
-export default function ExecutionSummary({ execution, actionsUrl, reportUrl, mode }: Props) {
+export default function ExecutionSummary({ execution, mode, onViewReport }: Props) {
 
-    if (!execution && !actionsUrl && mode !== "github") return null;
 
-    if (mode === "github" || actionsUrl) {
+    if (!execution && mode !== "github") return null;
+
+    if (mode === "github") {
         return (
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800">
-                            🚀 GitHub Actions Automation Triggered
+                            🚀 Automation Executing
                         </h2>
                         <p className="text-sm text-slate-500 mt-1">
-                            Playwright test uploaded & workflow dispatched on GitHub Actions.
+                            Playwright test suite launched successfully
                         </p>
                     </div>
 
-                    <span className="px-4 py-2 rounded-full text-sm font-semibold bg-blue-100 text-blue-700 animate-pulse">
-                        ⚡ WORKFLOW RUNNING
+                    <span className="px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-700">
+                        ✔ STARTED
                     </span>
                 </div>
 
-                <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 space-y-4">
-                    <p className="text-slate-700 font-medium">
-                        The Playwright test has been uploaded to your repository and the workflow is executing on GitHub Actions runner.
+                <div className="rounded-xl border border-green-200 bg-green-50 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <p className="text-green-800 font-medium text-sm">
+                        🎉 Automation test triggered successfully! Click <strong>View Allure Report</strong> to open the interactive test report.
                     </p>
 
-                    <div className="flex flex-wrap gap-4 pt-2">
-                        {actionsUrl && (
-                            <a
-                                href={actionsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm transition shadow flex items-center gap-2"
-                            >
-                                🐙 View GitHub Action Logs
-                            </a>
-                        )}
-
-                        {reportUrl && (
-                            <a
-                                href={reportUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition shadow flex items-center gap-2"
-                            >
-                                📊 View Allure Report (GitHub Pages)
-                            </a>
-                        )}
-                    </div>
+                    {onViewReport && (
+                        <button
+                            onClick={onViewReport}
+                            className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition shadow shrink-0"
+                        >
+                            📊 View Allure Report
+                        </button>
+                    )}
                 </div>
             </div>
         );
     }
+
 
     const allPassed =
         execution.failed === 0 && execution.broken === 0;
