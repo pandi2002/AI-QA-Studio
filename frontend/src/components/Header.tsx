@@ -1,11 +1,19 @@
+import type { User } from "../types/user";
+
 type HeaderProps = {
     provider: string;
     setProvider: React.Dispatch<React.SetStateAction<string>>;
+    user: User | null;
+    onOpenAuthModal: () => void;
+    onLogout: () => void;
 };
 
 export default function Header({
     provider,
     setProvider,
+    user,
+    onOpenAuthModal,
+    onLogout,
 }: HeaderProps) {
 
     return (
@@ -27,8 +35,11 @@ export default function Header({
                     px-8
                     py-6
                     flex
-                    items-center
+                    flex-col
+                    md:flex-row
+                    md:items-center
                     justify-between
+                    gap-4
                 "
             >
 
@@ -61,7 +72,7 @@ export default function Header({
 
                 {/* Right Side */}
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4 flex-wrap">
 
                     {/* AI Provider */}
 
@@ -107,6 +118,27 @@ export default function Header({
 
                     </div>
 
+                    {/* User Auth Controls */}
+
+                    {user ? (
+                        <div className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-2 text-white text-sm">
+                            <span className="font-semibold text-blue-200">👤 {user.name}</span>
+                            <button
+                                onClick={onLogout}
+                                className="text-xs bg-red-500/80 hover:bg-red-600 px-3 py-1 rounded-lg text-white font-medium transition"
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={onOpenAuthModal}
+                            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition shadow-md flex items-center gap-2"
+                        >
+                            🔐 Sign In / Register
+                        </button>
+                    )}
+
                 </div>
 
             </div>
@@ -115,4 +147,4 @@ export default function Header({
 
     );
 
-}
+}

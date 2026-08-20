@@ -146,4 +146,46 @@ def trigger_github_action():
         "actions_url": get_actions_url(),
         "report_url": get_report_url(),
         "message": "GitHub Actions workflow triggered successfully.",
-    }
+    }
+
+
+def get_workflow_status():
+    url = (
+        f"{GITHUB_API}/repos/"
+        f"{GITHUB_OWNER}/"
+        f"{GITHUB_REPO}/actions/workflows/"
+        f"{WORKFLOW_FILE}/runs"
+    )
+
+    try:
+        response = requests.get(
+            url,
+            headers=get_headers(),
+            params={"per_page": 1},
+            timeout=15,
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            runs = data.get("workflow_runs", [])
+            if runs:
+                latest = runs[0]
+                return {
+                    "status": latest.get("status"),
+                    "conclusion": latest.get("conclusion"),
+                    "completed": latest.get("status") == "completed",
+                    "success": latest.get("conclusion") == "success",
+                    "html_url": latest.get("html_url"),
+                    "report_url": get_report_url(),
+                }
+    except Exception as e:
+        print(f"[get_workflow_status] Error: {e}")
+
+    return {
+        "status": "unknown",
+        "conclusion": None,
+        "completed": False,
+        "success": False,
+        "report_url": get_report_url(),
+    }
+

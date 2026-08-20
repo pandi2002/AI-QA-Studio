@@ -18,10 +18,13 @@ import Footer from "./components/Footer";
 import PlaywrightResult from "./components/PlaywrightResult";
 import ReviewResult from "./components/ReviewResult";
 import type { TestCaseResponse } from "./types/testcase";
+import type { User } from "./types/user";
 import BugReportResult from "./components/BugReportResult";
 import ExecutionSummary from "./components/ExecutionSummary";
 import SQLResult from "./components/SQLResult";
-import { generateTestCases, exportExcel, exportPdf, generatePlaywright, generateSQL, generateReview, generateBugReport, runAutomation } from "./services/api";
+import AuthModal from "./components/AuthModal";
+import { generateTestCases, exportExcel, exportPdf, generatePlaywright, generateSQL, generateReview, generateBugReport, runAutomation, getAutomationStatus } from "./services/api";
+
 
 function App() {
   const [provider, setProvider] = useState("gemini");
@@ -34,6 +37,24 @@ function App() {
   const [bugReport, setBugReport] = useState<BugReport | null>(null);
   const [execution, setExecution] = useState<Execution | null>(null);
   const [reportUrl, setReportUrl] = useState("");
+
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem("ai_qa_user");
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const handleLoginSuccess = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem("ai_qa_user", JSON.stringify(userData));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem("ai_qa_user");
+    toast.success("Logged out successfully.");
+  };
+
 
   const [stdout, setStdout] = useState("");
 
@@ -267,15 +288,47 @@ function App() {
       resetExecution();
 
       setLoading(true);
-      setMessage(LOADING_MESSAGES.AUTOMATION);
+      setMessage("🚀 Launching automation test suite...");
 
-      const response = await runAutomation(playwrightCode);
+      const response = await runAutomation(playwrightCode, user?.username || "default");
 
       console.log("Automation Response:", response);
 
       if (response.mode === "github") {
-        setReportUrl(response.report_url || "https://pandi2002.github.io/AI-QA-Studio/");
-        toast.success("🎉 Automation started successfully!");
+        const userReport = user
+          ? `https://pandi2002.github.io/AI-QA-Studio/reports/${user.username}/index.html`
+          : (response.report_url || "https://pandi2002.github.io/AI-QA-Studio/");
+        setReportUrl(userReport);
+
+        toast.success("🚀 Automation test triggered! Waiting for completion...");
+        setMessage("⏱️ Automation test running on cloud runner...");
+
+        // Poll workflow status until completion
+        let attempts = 0;
+        const maxAttempts = 36; // 3 minutes total
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          try {
+            const statusRes = await getAutomationStatus();
+            if (statusRes.completed || attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              setLoading(false);
+              setMessage("");
+              if (statusRes.success) {
+                toast.success("🎉 Automation completed successfully! Click View Allure Report to view your report.");
+              } else {
+                toast.error("Automation completed with issues. Click View Allure Report to inspect.");
+              }
+            }
+          } catch {
+            if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              setLoading(false);
+              setMessage("");
+            }
+          }
+        }, 5000);
+
       } else {
         setExecution(response.summary || null);
         setStdout(response.stdout || "");
@@ -286,26 +339,25 @@ function App() {
         }
 
         if (response.success) {
-          toast.success(SUCCESS_MESSAGES.AUTOMATION);
+          toast.success("🎉 Automation completed successfully! Click View Allure Report to view your report.");
         } else {
-          toast.error(response.message || "Automation failed. Check logs or report for details.");
+          toast.error(response.message || "Automation failed. Click View Allure Report for details.");
         }
+        setLoading(false);
+        setMessage("");
       }
-      setMessage("");
 
     } catch (error) {
 
       console.error(error);
+      setLoading(false);
+      setMessage("");
 
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
         toast.error(ERROR_MESSAGES.AUTOMATION);
       }
-
-    } finally {
-
-      setLoading(false);
 
     }
   };
@@ -314,9 +366,12 @@ function App() {
   // HANDLE VIEW REPORT:
   //==================================
   const handleViewReport = () => {
-    const url = reportUrl || "https://pandi2002.github.io/AI-QA-Studio/";
-    window.open(url, "_blank");
+    const targetUrl = user
+      ? `https://pandi2002.github.io/AI-QA-Studio/reports/${user.username}/index.html`
+      : (reportUrl || "https://pandi2002.github.io/AI-QA-Studio/");
+    window.open(targetUrl, "_blank");
   };
+
 
 
   //==================================
@@ -482,9 +537,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <Header provider={provider}
+      <Header
+        provider={provider}
         setProvider={setProvider}
+        user={user}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
       />
+
 
       <main className="max-w-7xl mx-auto p-6 space-y-6">
 
@@ -568,7 +628,13 @@ function App() {
 
       <Footer />
 
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
+
   );
 }
 

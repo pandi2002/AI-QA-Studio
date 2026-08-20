@@ -22,6 +22,8 @@ from reportlab.lib.colors import HexColor
 from datetime import datetime
 
 from routes.automation_route import router as automation_router
+from routes.auth_route import router as auth_router
+
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -63,6 +65,8 @@ app.mount(
 
 app.include_router(bug_report_router)
 app.include_router(automation_router)
+app.include_router(auth_router)
+
 
 
 app.add_middleware(

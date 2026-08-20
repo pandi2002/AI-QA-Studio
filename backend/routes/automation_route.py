@@ -8,6 +8,7 @@ from services.github_service import (
     get_actions_url,
     get_report_url,
     get_github_token,
+    get_workflow_status,
 )
 from services.automation_service import run_local_automation
 
@@ -20,6 +21,12 @@ router = APIRouter(
 class PlaywrightExecutionRequest(BaseModel):
     script: str
     mode: str = "auto"  # "auto", "github", or "local"
+    username: str = "default"
+
+
+@router.get("/status")
+def get_automation_status():
+    return get_workflow_status()
 
 
 @router.post("/run")
@@ -41,7 +48,7 @@ async def run_generated_playwright(
             return {
                 "success": True,
                 "mode": "github",
-                "message": "Automation triggered successfully on GitHub Actions! Check execution logs and Allure report below.",
+                "message": "Automation triggered successfully!",
                 "file": "generated.spec.ts",
                 "actions_url": get_actions_url(),
                 "report_url": get_report_url(),
@@ -72,4 +79,5 @@ async def run_generated_playwright(
             "stdout": "",
             "stderr": str(e),
         }
+
 

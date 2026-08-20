@@ -121,7 +121,41 @@ export async function generateSQL(
     return await response.json();
 }
 
-export async function runAutomation(script: string) {
+export async function loginUser(username: string, password: string) {
+    const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+    });
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || "Login failed.");
+    }
+    return await response.json();
+}
+
+export async function registerUser(username: string, password: string, name?: string) {
+    const response = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, name }),
+    });
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || "Registration failed.");
+    }
+    return await response.json();
+}
+
+export async function getAutomationStatus() {
+    const response = await fetch(`${API_URL}/automation/status`);
+    if (!response.ok) {
+        throw new Error("Failed to fetch automation status.");
+    }
+    return await response.json();
+}
+
+export async function runAutomation(script: string, username: string = "default") {
 
     const response = await fetch(`${API_URL}/automation/run`, {
         method: "POST",
@@ -130,6 +164,7 @@ export async function runAutomation(script: string) {
         },
         body: JSON.stringify({
             script,
+            username,
         }),
     });
 
@@ -139,6 +174,7 @@ export async function runAutomation(script: string) {
 
     return await response.json();
 }
+
 
 export async function generateBugReport(testcases: any,
     provider: string) {
