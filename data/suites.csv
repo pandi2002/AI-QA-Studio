@@ -1,0 +1,7 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","286","TC-001: User logs in with valid username and password","","2026-08-20","failed","2026-08-20","Login Module","generated_20260804_181230.spec.ts","",""
+"","211","TC-004: User logs in with leading and trailing spaces in username","","2026-08-20","failed","2026-08-20","Login Module","generated_20260804_181230.spec.ts","",""
+"","299","TC-006: Administrator logs in and is redirected to admin console","","2026-08-20","failed","2026-08-20","Login Module","generated_20260804_181230.spec.ts","",""
+"","210","TC-005: User logs in with password containing special characters","","2026-08-20","failed","2026-08-20","Login Module","generated_20260804_181230.spec.ts","",""
+"","222","TC-002: User logs in with valid email address and password","","2026-08-20","failed","2026-08-20","Login Module","generated_20260804_181230.spec.ts","",""
+"","215","TC-003: User logs in with ""Remember Me"" option selected","","2026-08-20","failed","2026-08-20","Login Module","generated_20260804_181230.spec.ts","",""
