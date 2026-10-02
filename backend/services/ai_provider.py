@@ -28,17 +28,72 @@ def get_provider(provider: str):
 
 
 
+import re
+
 def parse_json(result: str):
+    raw = result.strip()
 
-    if result.startswith("```json"):
-        result = result.replace("```json", "", 1)
+    # Strip code block fences
+    if "```json" in raw:
+        raw = raw.split("```json", 1)[1]
+        if "```" in raw:
+            raw = raw.rsplit("```", 1)[0]
+    elif "```" in raw:
+        raw = raw.split("```", 1)[1]
+        if "```" in raw:
+            raw = raw.rsplit("```", 1)[0]
 
-    if result.endswith("```"):
-        result = result[:-3]
+    raw = raw.strip()
 
-    result = result.strip()
+    # Stage 1: Standard JSON parse
+    try:
+        return json.loads(raw)
+    except Exception:
+        pass
 
-    return json.loads(result)
+    # Stage 2: Automatic bracket & quote repair for truncated responses
+    repaired = raw
+    # Fix unclosed string quotes
+    if repaired.count('"') % 2 != 0:
+        repaired += '"'
+
+    open_brackets = repaired.count('[') - repaired.count(']')
+    open_braces = repaired.count('{') - repaired.count('}')
+
+    repaired += ']' * max(0, open_brackets)
+    repaired += '}' * max(0, open_braces)
+
+    try:
+        return json.loads(repaired)
+    except Exception:
+        pass
+
+    # Stage 3: Extract valid testCase items using regex
+    test_cases_match = re.search(r'"testCases"\s*:\s*\[(.*)', raw, re.DOTALL)
+    if test_cases_match:
+        items_str = test_cases_match.group(1)
+        objects = re.findall(r'\{[^{}]*\}', items_str)
+        valid_items = []
+        for obj in objects:
+            try:
+                valid_items.append(json.loads(obj))
+            except Exception:
+                pass
+        if valid_items:
+            return {"testCases": valid_items}
+
+    # Stage 4: Extract Playwright code if present
+    code_match = re.search(r'"code"\s*:\s*"(.*)"', raw, re.DOTALL)
+    if code_match:
+        return {"code": code_match.group(1)}
+
+    # Stage 5: Extract SQL if present
+    sql_match = re.search(r'"sql"\s*:\s*"(.*)"', raw, re.DOTALL)
+    if sql_match:
+        return {"sql": sql_match.group(1)}
+
+    raise Exception("Invalid or truncated JSON response from AI provider. Please try generating again.")
+
 
 
 async def generate_testcases(
