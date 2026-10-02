@@ -151,18 +151,13 @@ async def analyze_with_claude(images):
     if not images:
         return ""
 
-    try:
-        import anthropic
-    except ImportError:
-        raise Exception("The 'anthropic' package is missing on backend. Please install anthropic.")
-
-    claude_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
-    if not claude_key:
-        raise Exception("ANTHROPIC_API_KEY is not configured in backend environment variables.")
-
-    client = anthropic.Anthropic(api_key=claude_key)
-
-    claude_model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+    key = (
+        os.getenv("ANTHROPIC_API_KEY") or
+        os.getenv("OPENROUTER_API_KEY") or
+        os.getenv("CLAUDE_API_KEY")
+    )
+    if not key:
+        raise Exception("Neither ANTHROPIC_API_KEY nor OPENROUTER_API_KEY is configured in backend environment variables.")
 
     prompt = """
 You are a Senior QA Engineer.
@@ -182,6 +177,47 @@ Return:
 
 Return markdown only.
 """
+
+    if key.startswith("sk-or-v1-"):
+        import requests
+        model = os.getenv("CLAUDE_MODEL") or "anthropic/claude-sonnet-5.5"
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://ai-qa-studio.onrender.com",
+            "X-Title": "AI QA Studio",
+        }
+        content = [{"type": "text", "text": prompt}]
+        for image in images:
+            image_bytes = await image.read()
+            base64_image = base64.b64encode(image_bytes).decode("utf-8")
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{image.content_type or 'image/png'};base64,{base64_image}"
+                }
+            })
+        payload = {
+            "model": model,
+            "max_tokens": 3000,
+            "messages": [{"role": "user", "content": content}],
+            "temperature": 0.3
+        }
+
+        res = requests.post(url, headers=headers, json=payload, timeout=60)
+        if res.status_code != 200:
+            raise Exception(f"OpenRouter Claude Vision Error ({res.status_code}): {res.text}")
+        data = res.json()
+        return data["choices"][0]["message"]["content"]
+
+    try:
+        import anthropic
+    except ImportError:
+        raise Exception("The 'anthropic' package is missing on backend.")
+
+    client = anthropic.Anthropic(api_key=key)
+    claude_model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
 
     content = []
     for image in images:
@@ -212,4 +248,5 @@ Return markdown only.
         ]
     )
 
-    return response.content[0].text
+    return response.content[0].text
+

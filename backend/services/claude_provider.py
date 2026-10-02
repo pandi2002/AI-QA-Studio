@@ -1,24 +1,62 @@
 import os
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
-claude_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
-claude_model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+claude_key = (
+    os.getenv("ANTHROPIC_API_KEY") or
+    os.getenv("OPENROUTER_API_KEY") or
+    os.getenv("CLAUDE_API_KEY")
+)
 
 
 async def generate_response(prompt: str):
+    key = (
+        os.getenv("ANTHROPIC_API_KEY") or
+        os.getenv("OPENROUTER_API_KEY") or
+        os.getenv("CLAUDE_API_KEY") or
+        claude_key
+    )
+
+    if not key:
+        raise Exception("Neither ANTHROPIC_API_KEY nor OPENROUTER_API_KEY is configured in backend environment variables. Please set ANTHROPIC_API_KEY under Render Environment Variables.")
+
+    # OpenRouter API key route
+    if key.startswith("sk-or-v1-"):
+        model = os.getenv("CLAUDE_MODEL") or "anthropic/claude-sonnet-5.5"
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://ai-qa-studio.onrender.com",
+            "X-Title": "AI QA Studio",
+        }
+        payload = {
+            "model": model,
+            "max_tokens": 3000,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "temperature": 0.3
+        }
+
+        res = requests.post(url, headers=headers, json=payload, timeout=60)
+        if res.status_code != 200:
+            raise Exception(f"OpenRouter Claude API Error ({res.status_code}): {res.text}")
+        data = res.json()
+        return data["choices"][0]["message"]["content"].strip()
+
+    # Direct Anthropic API route
     try:
         import anthropic
     except ImportError:
         raise Exception("The 'anthropic' package is missing on backend. Please install anthropic.")
 
-    key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY") or claude_key
-    model = os.getenv("CLAUDE_MODEL") or claude_model
-
-    if not key:
-        raise Exception("ANTHROPIC_API_KEY is not configured in backend environment variables. Please add ANTHROPIC_API_KEY under Render Environment Variables.")
-
+    model = os.getenv("CLAUDE_MODEL") or "claude-3-5-sonnet-20241022"
     client = anthropic.Anthropic(api_key=key)
 
     response = client.messages.create(
@@ -33,4 +71,5 @@ async def generate_response(prompt: str):
     )
 
     return response.content[0].text.strip()
+
 
