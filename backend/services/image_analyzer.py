@@ -1,8 +1,8 @@
 import base64
 import os
-import anthropic
 from groq import Groq
 from dotenv import load_dotenv
+
 from google import genai
 from google.genai import types
 from services.groq_provider import groq_client
@@ -151,11 +151,17 @@ async def analyze_with_claude(images):
     if not images:
         return ""
 
+    try:
+        import anthropic
+    except ImportError:
+        raise Exception("The 'anthropic' package is missing on backend. Please install anthropic.")
+
     claude_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
     if not claude_key:
         raise Exception("ANTHROPIC_API_KEY is not configured in backend environment variables.")
 
     client = anthropic.Anthropic(api_key=claude_key)
+
     claude_model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
 
     prompt = """
