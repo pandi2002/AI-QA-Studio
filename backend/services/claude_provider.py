@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from dotenv import load_dotenv
 
@@ -34,8 +35,12 @@ async def generate_response(prompt: str):
         }
 
         max_t = int(os.getenv("CLAUDE_MAX_TOKENS", "2000"))
+        tokens_to_try = [max_t, 1800, 1500, 1000, 800, 500, 300, 150]
+        idx = 0
         last_error = ""
-        for max_tokens_try in [max_t, 1800, 1500, 1000]:
+
+        while idx < len(tokens_to_try):
+            max_tokens_try = tokens_to_try[idx]
             payload = {
                 "model": model,
                 "max_tokens": max_tokens_try,
@@ -56,14 +61,23 @@ async def generate_response(prompt: str):
                     content = msg.get("content") or ""
                     return content.strip()
                 return ""
-            elif res.status_code == 402 and max_tokens_try > 1000:
-                print(f"[OpenRouter] Status 402 with max_tokens={max_tokens_try}, retrying with lower limit...")
+            elif res.status_code == 402:
                 last_error = res.text
-                continue
+                print(f"[OpenRouter] Status 402 with max_tokens={max_tokens_try}: {res.text}")
+                # Parse exact affordable tokens from OpenRouter error message
+                afford_match = re.search(r"can only afford (\d+)", res.text)
+                if afford_match:
+                    afford_val = int(afford_match.group(1))
+                    if afford_val > 50 and afford_val < max_tokens_try:
+                        next_val = max(50, afford_val - 10)
+                        # Check if next_val isn't already in list
+                        if next_val not in tokens_to_try:
+                            tokens_to_try.insert(idx + 1, next_val)
+                idx += 1
             else:
                 raise Exception(f"OpenRouter Claude API Error ({res.status_code}): {res.text}")
 
-        raise Exception(f"OpenRouter Claude API Error: Out of credits or token limit exceeded. Details: {last_error}")
+        raise Exception("OpenRouter Claude API Error (402): Your OpenRouter key credit balance is too low for this request. Please add credits at https://openrouter.ai/settings/credits or switch provider to Gemini / Groq.")
 
     # Direct Anthropic API route
     try:
