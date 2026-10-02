@@ -1,5 +1,6 @@
 import base64
 import os
+import anthropic
 from groq import Groq
 from dotenv import load_dotenv
 from google import genai
@@ -21,8 +22,12 @@ async def analyze_ui_images(images):
     elif provider == "groq":
         return await analyze_with_groq(images)
 
+    elif provider in ("claude", "anthropic"):
+        return await analyze_with_claude(images)
+
     else:
         raise Exception(f"Unsupported provider: {provider}")
+
 
 
 # -------------------------
@@ -132,6 +137,73 @@ Return markdown only.
             model=os.getenv("GROQ_MODEL"),
             messages=messages,
             temperature=0.3,
-                    )
+        )
 
     return response.choices[0].message.content
+
+
+# -------------------------
+# Claude
+# -------------------------
+
+async def analyze_with_claude(images):
+
+    if not images:
+        return ""
+
+    claude_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
+    if not claude_key:
+        raise Exception("ANTHROPIC_API_KEY is not configured in backend environment variables.")
+
+    client = anthropic.Anthropic(api_key=claude_key)
+    claude_model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+
+    prompt = """
+You are a Senior QA Engineer.
+
+Analyze the uploaded UI screenshots.
+
+Identify every visible UI component.
+
+Return:
+
+1. Screen Name
+2. Business Purpose
+3. All UI Controls
+4. Validations
+5. Missing Validations
+6. Business Flow
+
+Return markdown only.
+"""
+
+    content = []
+    for image in images:
+        image_bytes = await image.read()
+        base64_image = base64.b64encode(image_bytes).decode("utf-8")
+        content.append({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": image.content_type or "image/png",
+                "data": base64_image,
+            }
+        })
+
+    content.append({
+        "type": "text",
+        "text": prompt
+    })
+
+    response = client.messages.create(
+        model=claude_model,
+        max_tokens=4096,
+        messages=[
+            {
+                "role": "user",
+                "content": content
+            }
+        ]
+    )
+
+    return response.content[0].text

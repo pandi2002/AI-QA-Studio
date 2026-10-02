@@ -1,6 +1,6 @@
 import json
 
-from services import gemini_provider, groq_provider
+from services import gemini_provider, groq_provider, claude_provider
 
 from prompts.testcase_prompt import build_testcase_prompt
 from prompts.playwright_prompt import build_playwright_prompt
@@ -21,7 +21,11 @@ def get_provider(provider: str):
     elif provider == "groq":
         return groq_provider
 
+    elif provider in ("claude", "anthropic"):
+        return claude_provider
+
     raise Exception(f"Unsupported Provider : {provider}")
+
 
 
 def parse_json(result: str):

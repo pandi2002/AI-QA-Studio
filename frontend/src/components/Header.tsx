@@ -119,6 +119,26 @@ export default function Header({
                             ⚡ Groq
                         </button>
 
+                        <button
+                            onClick={() => setProvider("claude")}
+                            className={`
+                                px-4
+                                py-2
+                                rounded-lg
+                                text-sm
+                                font-semibold
+                                transition-all
+                                duration-300
+                                ${provider === "claude"
+                                    ? "bg-white text-blue-700 shadow"
+                                    : "text-white hover:bg-white/20"
+                                }
+                            `}
+                        >
+                            🧠 Claude
+                        </button>
+
+
                     </div>
 
                     {/* User Auth Controls */}
