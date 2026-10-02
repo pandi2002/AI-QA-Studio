@@ -198,18 +198,24 @@ Return markdown only.
                     "url": f"data:{image.content_type or 'image/png'};base64,{base64_image}"
                 }
             })
-        payload = {
-            "model": model,
-            "max_tokens": 3000,
-            "messages": [{"role": "user", "content": content}],
-            "temperature": 0.3
-        }
+        max_t = int(os.getenv("CLAUDE_MAX_TOKENS", "2000"))
+        for max_tokens_try in [max_t, 1800, 1500, 1000]:
+            payload = {
+                "model": model,
+                "max_tokens": max_tokens_try,
+                "messages": [{"role": "user", "content": content}],
+                "temperature": 0.3
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=60)
+            if res.status_code == 200:
+                data = res.json()
+                return data["choices"][0]["message"]["content"]
+            elif res.status_code == 402 and max_tokens_try > 1000:
+                print(f"[OpenRouter Vision] Status 402 with max_tokens={max_tokens_try}, retrying with lower limit...")
+                continue
+            else:
+                raise Exception(f"OpenRouter Claude Vision Error ({res.status_code}): {res.text}")
 
-        res = requests.post(url, headers=headers, json=payload, timeout=60)
-        if res.status_code != 200:
-            raise Exception(f"OpenRouter Claude Vision Error ({res.status_code}): {res.text}")
-        data = res.json()
-        return data["choices"][0]["message"]["content"]
 
     try:
         import anthropic
