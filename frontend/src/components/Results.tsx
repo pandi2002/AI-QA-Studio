@@ -34,27 +34,33 @@ export default function Results({ result }: Props) {
                 {result.testCases.map((testCase: any, index: number) => {
                     if (!testCase || typeof testCase !== "object") return null;
 
-                    const tcId = testCase.testCaseId || testCase.id || `TC-${index + 1}`;
-                    const category = testCase.category || testCase.type || "Functional";
+                    const tcId = testCase.testCaseId || testCase.test_case_id || testCase.id || testCase.tc_id || `TC-${index + 1}`;
+                    const category = testCase.category || testCase.test_type || testCase.type || "Functional";
                     const priority = testCase.priority || "Medium";
-                    const scenario = typeof testCase.scenario === "string" 
-                        ? testCase.scenario 
-                        : (testCase.scenario ? JSON.stringify(testCase.scenario) : "N/A");
 
-                    const preconditions: string[] = Array.isArray(testCase.preconditions)
-                        ? testCase.preconditions.map((p: any) => String(p))
-                        : typeof testCase.preconditions === "string"
-                        ? [testCase.preconditions]
+                    const rawScenario = testCase.scenario || testCase.test_scenario || testCase.description || testCase.summary || testCase.title;
+                    const scenario = typeof rawScenario === "string" 
+                        ? rawScenario 
+                        : (rawScenario ? JSON.stringify(rawScenario) : "N/A");
+
+                    const rawPreconditions = testCase.preconditions || testCase.pre_conditions || testCase.prerequisites;
+                    const preconditions: string[] = Array.isArray(rawPreconditions)
+                        ? rawPreconditions.map((p: any) => String(p))
+                        : typeof rawPreconditions === "string"
+                        ? [rawPreconditions]
                         : [];
 
-                    const steps: any[] = Array.isArray(testCase.steps)
-                        ? testCase.steps
-                        : typeof testCase.steps === "string"
-                        ? [{ action: testCase.steps, expectedResult: "" }]
+                    const rawSteps = testCase.steps || testCase.test_steps || testCase.execution_steps;
+                    const steps: any[] = Array.isArray(rawSteps)
+                        ? rawSteps
+                        : typeof rawSteps === "string"
+                        ? [{ action: rawSteps, expectedResult: "" }]
                         : [];
+
+                    const rawTestData = testCase.testData !== undefined ? testCase.testData : (testCase.test_data !== undefined ? testCase.test_data : testCase.data);
 
                     const renderTestData = (data: any) => {
-                        if (!data) return "N/A";
+                        if (data === undefined || data === null || data === "") return "No specific test data required";
                         if (typeof data === "string") return data;
                         if (typeof data === "object") {
                             try {
@@ -68,9 +74,10 @@ export default function Results({ result }: Props) {
                         return String(data);
                     };
 
-                    const designTechnique = typeof testCase.designTechnique === "string"
-                        ? testCase.designTechnique
-                        : (testCase.designTechnique ? JSON.stringify(testCase.designTechnique) : "Standard");
+                    const rawTechnique = testCase.designTechnique || testCase.design_technique || testCase.technique;
+                    const designTechnique = typeof rawTechnique === "string"
+                        ? rawTechnique
+                        : (rawTechnique ? JSON.stringify(rawTechnique) : "Standard");
 
                     return (
                         <div
@@ -200,7 +207,7 @@ export default function Results({ result }: Props) {
                                     🗂 Test Data
                                 </h4>
                                 <div className="bg-white rounded-xl border p-4 text-slate-700 font-mono text-sm">
-                                    {renderTestData(testCase.testData)}
+                                    {renderTestData(rawTestData)}
                                 </div>
                             </div>
 
