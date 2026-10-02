@@ -562,25 +562,55 @@ function App() {
   //==================================
   function handleCopyTestCases() {
 
-    if (!result) {
+    if (!result || !result.testCases || result.testCases.length === 0) {
       toast.error(ERROR_MESSAGES.COPY);
       return;
     }
 
-    let text = "";
+    let text = `📋 ${result.module || "Test Suite"} - ${result.testCases.length} Test Cases\n\n`;
 
-    result.testCases.forEach((tc: any) => {
+    result.testCases.forEach((tc: any, index: number) => {
+      const tcId = tc.testCaseId || tc.test_case_id || tc.id || `TC-${index + 1}`;
+      const category = tc.category || tc.test_type || tc.type || "Functional";
+      const priority = tc.priority || "Medium";
+      const scenario = tc.scenario || tc.test_scenario || tc.description || tc.summary || "N/A";
+      const rawPre = tc.preconditions || tc.pre_conditions || [];
+      const preconditions = Array.isArray(rawPre) ? rawPre : (typeof rawPre === "string" ? [rawPre] : []);
+      const rawSteps = tc.steps || tc.test_steps || [];
+      const steps = Array.isArray(rawSteps) ? rawSteps : (typeof rawSteps === "string" ? [{ action: rawSteps, expectedResult: "" }] : []);
+      const testData = tc.testData !== undefined ? tc.testData : (tc.test_data !== undefined ? tc.test_data : "No specific test data required");
+      const designTechnique = tc.designTechnique || tc.design_technique || "Standard";
 
       text += `====================================\n`;
-      text += `${tc.testCaseId}\n`;
-      text += `====================================\n\n`;
+      text += `Test Case ID: ${tcId}\n`;
+      text += `====================================\n`;
+      text += `Category        : ${category}\n`;
+      text += `Priority        : ${priority}\n`;
+      text += `Design Technique: ${designTechnique}\n\n`;
+      text += `🎯 Scenario:\n${scenario}\n\n`;
 
-      text += `Category : ${tc.category}\n`;
-      text += `Priority : ${tc.priority}\n\n`;
+      if (preconditions.length > 0) {
+        text += `📌 Preconditions:\n`;
+        preconditions.forEach((p: string) => {
+          text += `- ${p}\n`;
+        });
+        text += `\n`;
+      }
 
-      text += `Scenario:\n${tc.scenario}\n\n`;
+      if (steps.length > 0) {
+        text += `🚀 Test Steps:\n`;
+        steps.forEach((s: any, sIdx: number) => {
+          const act = typeof s === "object" && s !== null ? (s.action || s.step || "") : String(s);
+          const exp = typeof s === "object" && s !== null ? (s.expectedResult || s.expected_result || "") : "";
+          text += `  Step ${sIdx + 1}: ${act}\n`;
+          if (exp) {
+            text += `  Expected Result: ${exp}\n`;
+          }
+        });
+        text += `\n`;
+      }
 
-      text += `Expected Result:\n${tc.expectedResult}\n\n`;
+      text += `🗂 Test Data:\n${typeof testData === "object" ? JSON.stringify(testData) : testData}\n\n\n`;
     });
 
     navigator.clipboard.writeText(text);

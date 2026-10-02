@@ -20,7 +20,7 @@ async def generate_response(prompt: str):
     )
 
     if not key:
-        raise Exception("Neither ANTHROPIC_API_KEY nor OPENROUTER_API_KEY is configured in backend environment variables. Please set ANTHROPIC_API_KEY under Render Environment Variables.")
+        raise Exception("Neither ANTHROPIC_API_KEY nor OPENROUTER_API_KEY is configured in backend environment variables. Please set ANTHROPIC_API_KEY or OPENROUTER_API_KEY under Render Environment Variables.")
 
     # OpenRouter API key route
     if key.startswith("sk-or-v1-"):
@@ -34,6 +34,7 @@ async def generate_response(prompt: str):
         }
 
         max_t = int(os.getenv("CLAUDE_MAX_TOKENS", "2000"))
+        last_error = ""
         for max_tokens_try in [max_t, 1800, 1500, 1000]:
             payload = {
                 "model": model,
@@ -49,13 +50,20 @@ async def generate_response(prompt: str):
             res = requests.post(url, headers=headers, json=payload, timeout=60)
             if res.status_code == 200:
                 data = res.json()
-                return data["choices"][0]["message"]["content"].strip()
+                choices = data.get("choices", [])
+                if choices and len(choices) > 0:
+                    msg = choices[0].get("message", {})
+                    content = msg.get("content") or ""
+                    return content.strip()
+                return ""
             elif res.status_code == 402 and max_tokens_try > 1000:
                 print(f"[OpenRouter] Status 402 with max_tokens={max_tokens_try}, retrying with lower limit...")
+                last_error = res.text
                 continue
             else:
                 raise Exception(f"OpenRouter Claude API Error ({res.status_code}): {res.text}")
 
+        raise Exception(f"OpenRouter Claude API Error: Out of credits or token limit exceeded. Details: {last_error}")
 
     # Direct Anthropic API route
     try:
@@ -77,6 +85,8 @@ async def generate_response(prompt: str):
         ]
     )
 
-    return response.content[0].text.strip()
+    if not response.content or len(response.content) == 0:
+        return ""
 
-
+    text = response.content[0].text or ""
+    return text.strip()

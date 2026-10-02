@@ -31,11 +31,24 @@ def get_provider(provider: str):
 import re
 
 def parse_json(result: str):
-    raw = result.strip()
+    if result is None:
+        raise Exception("AI Provider returned an empty response. Please check your API key or model availability.")
+
+    raw = str(result).strip()
+    if not raw:
+        raise Exception("AI Provider returned empty text. Please try generating again.")
 
     # Strip code block fences
     if "```json" in raw:
         raw = raw.split("```json", 1)[1]
+        if "```" in raw:
+            raw = raw.rsplit("```", 1)[0]
+    elif "```typescript" in raw:
+        raw = raw.split("```typescript", 1)[1]
+        if "```" in raw:
+            raw = raw.rsplit("```", 1)[0]
+    elif "```sql" in raw:
+        raw = raw.split("```sql", 1)[1]
         if "```" in raw:
             raw = raw.rsplit("```", 1)[0]
     elif "```" in raw:
@@ -142,7 +155,15 @@ def parse_json(result: str):
     if sql_match:
         return {"sql": sql_match.group(1)}
 
-    raise Exception("Invalid or truncated JSON response from AI provider. Please try generating again.")
+    # Stage 6: Fallback for raw TypeScript / Playwright code
+    if any(k in raw for k in ["import ", "test(", "describe(", "expect(", "page."]):
+        return {"code": raw}
+
+    # Stage 7: Fallback for raw SQL queries
+    if any(raw.upper().startswith(k) for k in ["SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "WITH"]):
+        return {"sql": raw}
+
+    raise Exception("Invalid or truncated response from AI provider. Please try generating again.")
 
 
 

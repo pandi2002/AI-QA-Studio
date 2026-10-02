@@ -187,7 +187,6 @@ def export_excel(data: dict = Body(...)):
         "Preconditions",
         "Steps",
         "Test Data",
-        "Expected Result",
         "Design Technique",
     ]
 
@@ -212,26 +211,52 @@ def export_excel(data: dict = Body(...)):
     # Data rows
     row = 2
 
-    for tc in data.get("testCases", []):
+    test_cases = data.get("testCases", [])
+    if not isinstance(test_cases, list):
+        test_cases = []
 
-        ws.cell(row=row, column=1).value = tc.get("testCaseId", "")
-        ws.cell(row=row, column=2).value = tc.get("category", "")
-        ws.cell(row=row, column=3).value = tc.get("priority", "")
-        ws.cell(row=row, column=4).value = tc.get("scenario", "")
+    for tc in test_cases:
+        if not isinstance(tc, dict):
+            continue
 
-        ws.cell(row=row, column=5).value = "\n".join(
-            tc.get("preconditions", [])
-        )
-        steps = tc.get("steps", [])
-        formatted_steps = "\n\n".join(
-             f"Step {index}: {step}"
-             for index, step in enumerate(steps, start=1)
-             )
-        ws.cell(row=row, column=6).value = formatted_steps
+        tc_id = tc.get("testCaseId") or tc.get("test_case_id") or tc.get("id") or f"TC-{row-1}"
+        cat = tc.get("category") or tc.get("test_type") or "Functional"
+        prio = tc.get("priority") or "Medium"
+        scen = tc.get("scenario") or tc.get("test_scenario") or tc.get("description") or ""
 
-        ws.cell(row=row, column=7).value = tc.get("testData", "")
-        ws.cell(row=row, column=8).value = tc.get("expectedResult", "")
-        ws.cell(row=row, column=9).value = tc.get("designTechnique", "")
+        pre = tc.get("preconditions") or tc.get("pre_conditions") or []
+        pre_str = "\n".join(pre) if isinstance(pre, list) else str(pre)
+
+        raw_steps = tc.get("steps") or tc.get("test_steps") or []
+        formatted_steps = []
+        if isinstance(raw_steps, list):
+            for index, step in enumerate(raw_steps, start=1):
+                if isinstance(step, dict):
+                    act = step.get("action") or step.get("step") or ""
+                    exp = step.get("expectedResult") or step.get("expected_result") or ""
+                    if exp:
+                        formatted_steps.append(f"Step {index}: {act}\nExpected: {exp}")
+                    else:
+                        formatted_steps.append(f"Step {index}: {act}")
+                else:
+                    formatted_steps.append(f"Step {index}: {step}")
+        else:
+            formatted_steps.append(str(raw_steps))
+
+        t_data = tc.get("testData") or tc.get("test_data") or ""
+        if isinstance(t_data, dict):
+            t_data = ", ".join(f"{k}: {v}" for k, v in t_data.items())
+
+        dt = tc.get("designTechnique") or tc.get("design_technique") or "Standard"
+
+        ws.cell(row=row, column=1).value = tc_id
+        ws.cell(row=row, column=2).value = cat
+        ws.cell(row=row, column=3).value = prio
+        ws.cell(row=row, column=4).value = scen
+        ws.cell(row=row, column=5).value = pre_str
+        ws.cell(row=row, column=6).value = "\n\n".join(formatted_steps)
+        ws.cell(row=row, column=7).value = str(t_data)
+        ws.cell(row=row, column=8).value = str(dt)
 
         row += 1
 
@@ -243,18 +268,18 @@ def export_excel(data: dict = Body(...)):
         )
         ws.column_dimensions[column_cells[0].column_letter].width = min(length + 5, 50)
 
-        EXPORT_DIR = Path(__file__).parent / "exports"
-        EXPORT_DIR.mkdir(exist_ok=True)
+    EXPORT_DIR = Path(__file__).parent / "exports"
+    EXPORT_DIR.mkdir(exist_ok=True)
 
-        file_path = EXPORT_DIR / "Generated_TestCases.xlsx"
+    file_path = EXPORT_DIR / "Generated_TestCases.xlsx"
 
-        wb.save(file_path)
-        return FileResponse(
-            path=file_path,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            filename="Generated_TestCases.xlsx",
+    wb.save(file_path)
+    return FileResponse(
+        path=file_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename="Generated_TestCases.xlsx",
+    )
 
-        )
 # ======================================================
 # Export PDF
 # ======================================================
@@ -273,182 +298,79 @@ def export_pdf(data: dict = Body(...)):
 
     story = []
 
-    # ---------------------------------------------
     # Title
-    # ---------------------------------------------
-
     title = styles["Title"]
     title.alignment = TA_CENTER
     title.textColor = HexColor("#1F4E79")
 
-    story.append(
-        Paragraph("AI QA Studio", title)
-    )
-
-    story.append(
-        Paragraph(
-            "<b>Generated Test Cases Report</b>",
-            styles["Heading2"],
-        )
-    )
-
-    story.append(
-        Paragraph(
-            f"Generated On : {datetime.now().strftime('%d-%m-%Y %I:%M %p')}",
-            styles["Normal"],
-        )
-    )
-
+    story.append(Paragraph("AI QA Studio", title))
+    story.append(Paragraph("<b>Generated Test Cases Report</b>", styles["Heading2"]))
+    story.append(Paragraph(f"Generated On : {datetime.now().strftime('%d-%m-%Y %I:%M %p')}", styles["Normal"]))
     story.append(Spacer(1, 20))
 
-    # ---------------------------------------------
-    # Test Cases
-    # ---------------------------------------------
+    test_cases = data.get("testCases", [])
+    if not isinstance(test_cases, list):
+        test_cases = []
 
-    for tc in data.get("testCases", []):
+    for index, tc in enumerate(test_cases, start=1):
+        if not isinstance(tc, dict):
+            continue
 
-        story.append(
-            Paragraph(
-                f"<b>{tc.get('testCaseId','')}</b>",
-                styles["Heading2"],
-            )
-        )
+        tc_id = tc.get("testCaseId") or tc.get("test_case_id") or tc.get("id") or f"TC-{index}"
+        cat = tc.get("category") or tc.get("test_type") or "Functional"
+        prio = tc.get("priority") or "Medium"
+        scen = tc.get("scenario") or tc.get("test_scenario") or tc.get("description") or ""
 
-        story.append(
-            Paragraph(
-                f"<b>Category :</b> {tc.get('category','')}",
-                styles["BodyText"],
-            )
-        )
+        story.append(Paragraph(f"<b>{tc_id}</b>", styles["Heading2"]))
+        story.append(Paragraph(f"<b>Category:</b> {cat} | <b>Priority:</b> {prio}", styles["BodyText"]))
+        story.append(Spacer(1, 6))
 
-        story.append(
-            Paragraph(
-                f"<b>Priority :</b> {tc.get('priority','')}",
-                styles["BodyText"],
-            )
-        )
-
-        story.append(Spacer(1, 10))
-
-        # Scenario
-
-        story.append(
-            Paragraph(
-                "<b>Scenario</b>",
-                styles["Heading3"],
-            )
-        )
-
-        story.append(
-            Paragraph(
-                tc.get("scenario",""),
-                styles["BodyText"],
-            )
-        )
-
-        story.append(Spacer(1, 10))
+        story.append(Paragraph("<b>Scenario</b>", styles["Heading3"]))
+        story.append(Paragraph(scen, styles["BodyText"]))
+        story.append(Spacer(1, 6))
 
         # Preconditions
-
-        story.append(
-            Paragraph(
-                "<b>Preconditions</b>",
-                styles["Heading3"],
-            )
-        )
-
-        preconditions = tc.get("preconditions", [])
-
-        for index, precondition in enumerate(preconditions, start=1):
-
-            story.append(
-                Paragraph(
-                    f"Precondition {index}: {precondition}",
-                    styles["BodyText"],
-                )
-            )
-
-        story.append(Spacer(1, 10))
+        pre = tc.get("preconditions") or tc.get("pre_conditions") or []
+        if pre:
+            story.append(Paragraph("<b>Preconditions</b>", styles["Heading3"]))
+            if isinstance(pre, list):
+                for p_idx, p_item in enumerate(pre, start=1):
+                    story.append(Paragraph(f"• {p_item}", styles["BodyText"]))
+            else:
+                story.append(Paragraph(str(pre), styles["BodyText"]))
+            story.append(Spacer(1, 6))
 
         # Steps
-
-        story.append(
-            Paragraph(
-                "<b>Steps</b>",
-                styles["Heading3"],
-            )
-        )
-
-        steps = tc.get("steps", [])
-
-        for index, step in enumerate(steps, start=1):
-
-            story.append(
-                Paragraph(
-                    f"Step {index}: {step}",
-                    styles["BodyText"],
-                )
-            )
-
-        story.append(Spacer(1, 10))
+        raw_steps = tc.get("steps") or tc.get("test_steps") or []
+        if raw_steps:
+            story.append(Paragraph("<b>Execution Steps</b>", styles["Heading3"]))
+            if isinstance(raw_steps, list):
+                for s_idx, step in enumerate(raw_steps, start=1):
+                    if isinstance(step, dict):
+                        act = step.get("action") or step.get("step") or ""
+                        exp = step.get("expectedResult") or step.get("expected_result") or ""
+                        story.append(Paragraph(f"<b>Step {s_idx}:</b> {act}", styles["BodyText"]))
+                        if exp:
+                            story.append(Paragraph(f"<i>Expected:</i> {exp}", styles["BodyText"]))
+                    else:
+                        story.append(Paragraph(f"Step {s_idx}: {step}", styles["BodyText"]))
+            else:
+                story.append(Paragraph(str(raw_steps), styles["BodyText"]))
+            story.append(Spacer(1, 6))
 
         # Test Data
-
-        story.append(
-            Paragraph(
-                "<b>Test Data</b>",
-                styles["Heading3"],
-            )
-        )
-
-        story.append(
-            Paragraph(
-                tc.get("testData",""),
-                styles["BodyText"],
-            )
-        )
-
-        story.append(Spacer(1, 10))
-
-        # Expected Result
-
-        story.append(
-            Paragraph(
-                "<b>Expected Result</b>",
-                styles["Heading3"],
-            )
-        )
-
-        story.append(
-            Paragraph(
-                tc.get("expectedResult",""),
-                styles["BodyText"],
-            )
-        )
-
-        story.append(Spacer(1, 10))
+        t_data = tc.get("testData") or tc.get("test_data") or ""
+        if t_data:
+            if isinstance(t_data, dict):
+                t_data = ", ".join(f"{k}: {v}" for k, v in t_data.items())
+            story.append(Paragraph("<b>Test Data</b>", styles["Heading3"]))
+            story.append(Paragraph(str(t_data), styles["BodyText"]))
+            story.append(Spacer(1, 6))
 
         # Design Technique
-
-        story.append(
-            Paragraph(
-                "<b>Design Technique</b>",
-                styles["Heading3"],
-            )
-        )
-
-        story.append(
-            Paragraph(
-                tc.get("designTechnique",""),
-                styles["BodyText"],
-            )
-        )
-
-        story.append(Spacer(1, 25))
-
-    # ---------------------------------------------
-    # Build PDF
-    # ---------------------------------------------
+        dt = tc.get("designTechnique") or tc.get("design_technique") or "Standard"
+        story.append(Paragraph(f"<b>Design Technique:</b> {dt}", styles["BodyText"]))
+        story.append(Spacer(1, 20))
 
     doc.build(story)
 
