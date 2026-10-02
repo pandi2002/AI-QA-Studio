@@ -24,6 +24,7 @@ import ExecutionSummary from "./components/ExecutionSummary";
 import SQLResult from "./components/SQLResult";
 import AuthModal from "./components/AuthModal";
 import HistoryDrawer from "./components/HistoryDrawer";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { generateTestCases, exportExcel, exportPdf, generatePlaywright, generateSQL, generateReview, generateBugReport, runAutomation, getAutomationStatus, saveUserData, loadUserData, clearUserData } from "./services/api";
 
 
@@ -709,15 +710,25 @@ function App() {
           </div>
         )}
 
-        <Results result={result} />
+        <ErrorBoundary fallbackTitle="Results Render Error">
+          <Results result={result} />
+        </ErrorBoundary>
 
-        <SQLResult sql={sqlCode} />
+        <ErrorBoundary fallbackTitle="SQL Result Render Error">
+          <SQLResult sql={sqlCode} />
+        </ErrorBoundary>
 
-        <PlaywrightResult
-          code={playwrightCode}
-        />
-        <ReviewResult review={review} />
-        <BugReportResult bugReport={bugReport} />
+        <ErrorBoundary fallbackTitle="Playwright Script Render Error">
+          <PlaywrightResult code={playwrightCode} />
+        </ErrorBoundary>
+
+        <ErrorBoundary fallbackTitle="Review Render Error">
+          <ReviewResult review={review} />
+        </ErrorBoundary>
+
+        <ErrorBoundary fallbackTitle="Bug Report Render Error">
+          <BugReportResult bugReport={bugReport} />
+        </ErrorBoundary>
       </main>
 
       <Footer />
